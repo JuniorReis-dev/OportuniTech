@@ -46,19 +46,20 @@ function App() {
     setLoading(true);
     setError(null);
 
-    // --- MODIFICAÇÃO AQUI ---
     // Use a variável de ambiente para a URL base da API.
-    // Adapte o prefixo (NEXT_PUBLIC_, REACT_APP_, VITE_) conforme seu projeto.
+    // Se estiver usando Create React App, o prefixo seria REACT_APP_
+    // Se estiver usando Vite, o prefixo seria VITE_
+    // Este código usa NEXT_PUBLIC_ como estava no seu exemplo anterior.
     const apiBaseUrl =
-      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001"; // Fallback para localhost se não definida
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
     const apiUrl = `${apiBaseUrl}/api/estagios`;
-    // --- FIM DA MODIFICAÇÃO ---
 
     try {
-      // const response = await fetch("http://localhost:3001/api/estagios"); // Linha antiga
-      const response = await fetch(apiUrl); // --- MODIFICAÇÃO AQUI ---
+      const response = await fetch(apiUrl);
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(
+          `HTTP error! status: ${response.status} - ${response.statusText}`
+        );
       }
       const data = await response.json();
       const sortedData = data.sort((a, b) => {
@@ -73,7 +74,7 @@ function App() {
           const partsA = dateAValue.split("/");
           dateA = new Date(`${partsA[2]}-${partsA[1]}-${partsA[0]}`);
         } else {
-          dateA = new Date(0);
+          dateA = new Date(0); // Data inválida ou ausente vai para o final/início
         }
         if (
           dateBValue &&
@@ -83,14 +84,14 @@ function App() {
           const partsB = dateBValue.split("/");
           dateB = new Date(`${partsB[2]}-${partsB[1]}-${partsB[0]}`);
         } else {
-          dateB = new Date(0);
+          dateB = new Date(0); // Data inválida ou ausente vai para o final/início
         }
-        return dateB.getTime() - dateA.getTime();
+        return dateB.getTime() - dateA.getTime(); // Ordena do mais recente para o mais antigo
       });
       setEstagios(sortedData);
     } catch (e) {
       setError(
-        "Não foi possível carregar os dados das vagas. Verifique se o back-end está rodando e a sua conexão com a internet."
+        `Não foi possível carregar os dados das vagas. Verifique se o back-end (${apiUrl}) está rodando e a sua conexão. Detalhes: ${e.message}`
       );
       console.error("Erro ao buscar estágios:", e);
     } finally {
@@ -99,44 +100,30 @@ function App() {
   };
 
   const estagiosFiltrados = estagios.filter((estagio) => {
-    const dataInclusao = estagio.Data_de_Incluso || "";
-    const area = estagio.Area || "";
-    const empresa = estagio.Empresa || "";
-    const cidade = estagio.Cidade || "";
-    const tituloVaga = estagio.Titulo_da_Vaga || "";
-    const tipoVaga = estagio.Tipo_de_Vaga || "";
-    const plataforma = estagio.Plataforma || "";
-
-    const dataInclusaoMatch = filtroDataInclusao
-      ? dataInclusao.toLowerCase().includes(filtroDataInclusao.toLowerCase())
-      : true;
-    const areaMatch = filtroArea
-      ? area.toLowerCase().includes(filtroArea.toLowerCase())
-      : true;
-    const empresaMatch = filtroEmpresa
-      ? empresa.toLowerCase().includes(filtroEmpresa.toLowerCase())
-      : true;
-    const cidadeMatch = filtroCidade
-      ? cidade.toLowerCase().includes(filtroCidade.toLowerCase())
-      : true;
-    const tituloVagaMatch = filtroTituloVaga
-      ? tituloVaga.toLowerCase().includes(filtroTituloVaga.toLowerCase())
-      : true;
-    const tipoVagaMatch = filtroTipoVaga
-      ? tipoVaga.toLowerCase().includes(filtroTipoVaga.toLowerCase())
-      : true;
-    const plataformaMatch = filtroPlataforma
-      ? plataforma.toLowerCase().includes(filtroPlataforma.toLowerCase())
-      : true;
+    const dataInclusao = String(estagio.Data_de_Incluso || "").toLowerCase();
+    const area = String(estagio.Area || "").toLowerCase();
+    const empresa = String(estagio.Empresa || "").toLowerCase();
+    const cidade = String(estagio.Cidade || "").toLowerCase();
+    const tituloVaga = String(estagio.Titulo_da_Vaga || "").toLowerCase();
+    const tipoVaga = String(estagio.Tipo_de_Vaga || "").toLowerCase();
+    const plataforma = String(estagio.Plataforma || "").toLowerCase();
 
     return (
-      dataInclusaoMatch &&
-      areaMatch &&
-      empresaMatch &&
-      cidadeMatch &&
-      tituloVagaMatch &&
-      tipoVagaMatch &&
-      plataformaMatch
+      (filtroDataInclusao
+        ? dataInclusao.includes(filtroDataInclusao.toLowerCase())
+        : true) &&
+      (filtroArea ? area.includes(filtroArea.toLowerCase()) : true) &&
+      (filtroEmpresa ? empresa.includes(filtroEmpresa.toLowerCase()) : true) &&
+      (filtroCidade ? cidade.includes(filtroCidade.toLowerCase()) : true) &&
+      (filtroTituloVaga
+        ? tituloVaga.includes(filtroTituloVaga.toLowerCase())
+        : true) &&
+      (filtroTipoVaga
+        ? tipoVaga.includes(filtroTipoVaga.toLowerCase())
+        : true) &&
+      (filtroPlataforma
+        ? plataforma.includes(filtroPlataforma.toLowerCase())
+        : true)
     );
   });
 
@@ -150,7 +137,7 @@ function App() {
         );
       }
 
-      const elementsToAnimate = [filtersRef.current].filter((el) => el);
+      const elementsToAnimate = [filtersRef.current].filter(Boolean);
       if (elementsToAnimate.length > 0) {
         gsap.fromTo(
           elementsToAnimate,
@@ -186,18 +173,14 @@ function App() {
         );
       }
     }
-    // Removido estagiosFiltrados.length da dependência para evitar reanimações excessivas em cada filtro
-    // A animação principal deve ocorrer quando os dados carregam ou o erro muda.
-    // Se precisar reanimar a lista em cada filtro, pode adicionar estagiosFiltrados de volta,
-    // mas pode ser visualmente ruidoso. Considere animar apenas a entrada/saída de itens.
-  }, [loading, error, estagiosFiltrados.length]); // Adicionado estagiosFiltrados.length para reanimar se a lista mudar
+  }, [loading, error, estagiosFiltrados.length]); // Adicionado estagiosFiltrados.length
 
   useEffect(() => {
     fetchEstagios();
-    const intervalTime = 5 * 60 * 1000;
+    const intervalTime = 5 * 60 * 1000; // 5 minutos
     const intervalId = setInterval(fetchEstagios, intervalTime);
     return () => clearInterval(intervalId);
-  }, []);
+  }, []); // Roda uma vez ao montar e configura o intervalo
 
   if (loading)
     return (
@@ -208,8 +191,7 @@ function App() {
     );
 
   const renderConteudoPrincipal = () => {
-    if (error)
-      return <div className="mensagem-erro">Erro ao carregar: {error}</div>;
+    if (error) return <div className="mensagem-erro">{error}</div>;
     if (estagios.length === 0 && !loading) {
       return (
         <div className="mensagem-nenhuma-vaga">
@@ -312,7 +294,6 @@ function App() {
             value={filtroPlataforma}
             onChange={(e) => setFiltroPlataforma(e.target.value)}
           />
-
           <button
             onClick={fetchEstagios}
             className="primary-action-button"
@@ -321,8 +302,9 @@ function App() {
               justifySelf: "center",
               marginTop: "10px",
             }}
+            disabled={loading} // Desabilita o botão enquanto carrega
           >
-            Atualizar Vagas Agora
+            {loading ? "Atualizando..." : "Atualizar Vagas Agora"}
           </button>
         </div>
         {renderConteudoPrincipal()}
