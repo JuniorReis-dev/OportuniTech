@@ -163,4 +163,3 @@ app.get("/api/estagios", async (req, res) => {
 app.listen(port, () => {
   console.log(`Servidor de back-end rodando em http://localhost:${port}`);
 });
-//Forçar novo deploy com configurações atualizadas da Vercel
