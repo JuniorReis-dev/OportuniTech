@@ -1,105 +1,227 @@
-// backend/server.js - Versão para servir o React SPA
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const path = require("path"); // Precisamos do 'path'
-const fs = require("fs"); // Precisamos do 'fs' para verificar o index.html
+const path = require("path");
+const fs = require("fs");
+const { google } = require("googleapis");
 
 const app = express();
 
-console.log("[Vercel Server Log - SPA] Iniciando server.js para servir SPA...");
-console.log(`[Vercel Server Log - SPA] __dirname: ${__dirname}`);
+console.log("[Vercel] Iniciando backend/server.js (versão completa)...");
+console.log(`[Vercel] __dirname: ${__dirname}`);
 
 app.use(cors());
 app.use(express.json());
 
-// Caminho para a pasta de build do seu frontend
 const frontendBuildPath = path.join(__dirname, "../frontend/build");
-console.log(
-  `[Vercel Server Log - SPA] Servindo arquivos estáticos de: ${frontendBuildPath}`
-);
+console.log(`[Vercel] Servindo estáticos de: ${frontendBuildPath}`);
 
-// 1. Servir arquivos estáticos da build do React (CSS, JS, imagens, etc.)
 app.use(express.static(frontendBuildPath));
 
-// 2. Sua rota de API (mantenha a sua lógica original aqui ou a simplificada por enquanto)
-const SPREADSHEET_ID = "13lutgdWIY7ezc-6PihVQcjWaqsdk0Pb-SBIEDpHx9as"; // Seu ID
+const SPREADSHEET_ID = "13lutgdWIY7ezc-6PihVQcjWaqsdk0Pb-SBIEDpHx9as";
 const API_KEY = process.env.GOOGLE_API_KEY;
-const { google } = require("googleapis"); // Se for usar a API do Google
 
 app.get("/api/estagios", async (req, res) => {
-  console.log("[Vercel Server Log - SPA] Requisição recebida em /api/estagios");
+  console.log("[Vercel] GET /api/estagios: Requisição recebida.");
   if (!API_KEY) {
     console.error(
-      "[Vercel Server Log - SPA] ERRO CRÍTICO: GOOGLE_API_KEY não está definida!"
+      "[Vercel] GET /api/estagios: ERRO - GOOGLE_API_KEY não definida!"
     );
     return res.status(500).json({
       error:
         "Erro de configuração no servidor: Chave da API do Google ausente.",
     });
   }
+
   try {
-    // ####################################################################
-    // # COLOQUE SUA LÓGICA COMPLETA E TESTADA DA API DO GOOGLE SHEETS AQUI #
-    // # O código abaixo é apenas um placeholder.                         #
-    // ####################################################################
+    const sheets = google.sheets({ version: "v4", auth: API_KEY });
+    let allEstagios = [];
+
+    console.log("[Vercel] GET /api/estagios: Buscando títulos das abas...");
+    const spreadsheetInfoResponse = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+      fields: "sheets.properties.title",
+    });
+
+    if (
+      !spreadsheetInfoResponse ||
+      !spreadsheetInfoResponse.data ||
+      !spreadsheetInfoResponse.data.sheets
+    ) {
+      console.error(
+        "[Vercel] GET /api/estagios: Resposta inválida ao buscar títulos das abas."
+      );
+      throw new Error(
+        "Resposta inválida ao buscar títulos das abas da planilha."
+      );
+    }
+
+    const availableSheetNames = spreadsheetInfoResponse.data.sheets
+      .map((sheet) => sheet.properties.title)
+      .filter(Boolean);
+
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const threeMonthsAgo = new Date(currentYear, currentMonth - 2, 1);
+
+    const relevantSheetNames = availableSheetNames
+      .filter((name) => {
+        const match = name.match(/^(\d{2})\/(\d{4})$/);
+        if (match) {
+          const month = parseInt(match[1], 10);
+          const year = parseInt(match[2], 10);
+          const sheetDate = new Date(year, month - 1, 1);
+          return (
+            sheetDate >= threeMonthsAgo &&
+            sheetDate <= new Date(currentYear, currentMonth + 1, 0)
+          );
+        }
+        return false;
+      })
+      .sort((a, b) => {
+        const [monthA, yearA] = a.split("/").map(Number);
+        const [monthB, yearB] = b.split("/").map(Number);
+        if (yearA !== yearB) return yearB - yearA;
+        return monthB - monthA;
+      });
+
+    if (relevantSheetNames.length === 0) {
+      console.log(
+        "[Vercel] GET /api/estagios: Nenhuma aba relevante (últimos 3 meses) encontrada."
+      );
+      return res.status(404).json({
+        message: "Nenhum estágio encontrado nas abas dos últimos 3 meses.",
+      });
+    }
     console.log(
-      "[Vercel Server Log - SPA] /api/estagios: Usando lógica de placeholder para API."
+      `[Vercel] GET /api/estagios: Abas relevantes: ${relevantSheetNames.join(
+        ", "
+      )}`
     );
-    const estagiosExemplo = [
-      {
-        Titulo_da_Vaga: `API Funcionando - ${SPREADSHEET_ID.substring(
-          0,
-          5
-        )}...`,
-        Empresa: "OportuniTech",
-      },
-    ];
-    res.json(estagiosExemplo);
-    // ####################################################################
+
+    for (const sheetName of relevantSheetNames) {
+      const range = `${sheetName}!A:Z`;
+      console.log(
+        `[Vercel] GET /api/estagios: Buscando dados da aba "${sheetName}", range "${range}"`
+      );
+      const response = await sheets.spreadsheets.get({
+        spreadsheetId: SPREADSHEET_ID,
+        ranges: [range],
+        fields:
+          "sheets.data.rowData.values.hyperlink,sheets.data.rowData.values.formattedValue",
+      });
+
+      if (
+        !response.data.sheets ||
+        response.data.sheets.length === 0 ||
+        !response.data.sheets[0].data ||
+        response.data.sheets[0].data.length === 0 ||
+        !response.data.sheets[0].data[0].rowData // Verifica se rowData existe
+      ) {
+        console.log(
+          `[Vercel] GET /api/estagios: Aba "${sheetName}" não contém dados (ou rowData) válidos. Pulando.`
+        );
+        continue;
+      }
+
+      const rows = response.data.sheets[0].data[0].rowData;
+
+      if (rows.length === 0) {
+        // rows[0] pode ser o cabeçalho, então rows.length === 0 ou 1
+        console.log(
+          `[Vercel] GET /api/estagios: Nenhuma linha de dados em "${sheetName}".`
+        );
+        continue;
+      }
+
+      const headers = rows[0].values
+        ? rows[0].values
+            .map((cell) =>
+              cell.formattedValue ? cell.formattedValue.trim() : ""
+            )
+            .filter(Boolean)
+        : [];
+
+      if (headers.length === 0) {
+        console.log(
+          `[Vercel] GET /api/estagios: Sem cabeçalhos válidos em "${sheetName}". Pulando.`
+        );
+        continue;
+      }
+
+      const estagiosFromSheet = rows
+        .slice(1)
+        .map((row) => {
+          let obj = {};
+          if (row.values) {
+            headers.forEach((header, index) => {
+              const cleanHeader = header
+                .replace(/\s+/g, "_")
+                .replace(/[^a-zA-Z0-9_]/g, "");
+              const cell = row.values[index];
+              obj[cleanHeader] = cell
+                ? cell.hyperlink || cell.formattedValue || ""
+                : "";
+            });
+          }
+          return obj;
+        })
+        .filter((item) =>
+          Object.values(item).some((val) => val && String(val).trim() !== "")
+        );
+
+      console.log(
+        `[Vercel] GET /api/estagios: ${estagiosFromSheet.length} estágios processados da aba "${sheetName}".`
+      );
+      allEstagios = allEstagios.concat(estagiosFromSheet);
+    }
+
+    if (allEstagios.length === 0) {
+      console.log(
+        "[Vercel] GET /api/estagios: Nenhum estágio encontrado após processar todas as abas."
+      );
+      return res.status(404).json({
+        message:
+          "Nenhum estágio encontrado após processar todas as abas relevantes.",
+      });
+    }
+    console.log(
+      `[Vercel] GET /api/estagios: Total de ${allEstagios.length} estágios. Enviando.`
+    );
+    res.json(allEstagios);
   } catch (error) {
     console.error(
-      "[Vercel Server Log - SPA] ERRO em /api/estagios:",
+      "[Vercel] GET /api/estagios: ERRO DURANTE EXECUÇÃO:",
       error.message,
       error.stack
     );
     res.status(500).json({
-      error: "Erro interno ao processar a requisição da API.",
+      error: "Erro interno ao buscar dados da planilha.",
       details: error.message,
     });
   }
 });
 
-// 3. Rota catch-all para servir o index.html (SPA Fallback)
-// DEVE SER A ÚLTIMA ROTA (depois de /api/estagios e app.use(express.static))
 app.get("*", (req, res) => {
   const indexPath = path.join(frontendBuildPath, "index.html");
   console.log(
-    `[Vercel Server Log - SPA] Rota catch-all '*': Tentando servir ${indexPath} para ${req.path}`
+    `[Vercel] Rota catch-all '*': Tentando servir ${indexPath} para ${req.path}`
   );
-
   fs.access(indexPath, fs.constants.F_OK, (err) => {
     if (err) {
       console.error(
-        `[Vercel Server Log - SPA] ERRO no catch-all: index.html NÃO ENCONTRADO em: ${indexPath}`
-      );
-      console.error(
-        `[Vercel Server Log - SPA] Detalhes do erro fs.access: ${err.message}`
+        `[Vercel] Rota catch-all '*': ERRO - index.html NÃO ENCONTRADO em ${indexPath}. Detalhes: ${err.message}`
       );
       return res
         .status(404)
         .send(
-          `index.html não encontrado em ${indexPath}. Verifique o build do frontend e os logs.`
+          `Arquivo principal da aplicação (index.html) não encontrado em ${indexPath}.`
         );
     }
-
-    console.log(
-      `[Vercel Server Log - SPA] SUCESSO no catch-all: index.html ENCONTRADO. Enviando para ${req.path}...`
-    );
     res.sendFile(indexPath, (sendFileError) => {
       if (sendFileError) {
         console.error(
-          `[Vercel Server Log - SPA] ERRO no catch-all ao enviar index.html: `,
+          `[Vercel] Rota catch-all '*': ERRO ao enviar ${indexPath}: `,
           sendFileError
         );
         if (!res.headersSent) {
@@ -109,22 +231,17 @@ app.get("*", (req, res) => {
         }
       } else {
         console.log(
-          `[Vercel Server Log - SPA] SUCESSO no catch-all: index.html enviado para ${req.path}`
+          `[Vercel] Rota catch-all '*': SUCESSO - ${indexPath} enviado para ${req.path}`
         );
       }
     });
   });
 });
 
-// Middleware de tratamento de erro (opcional, mas bom ter)
 app.use((err, req, res, next) => {
-  console.error(
-    "[Vercel Server Log - SPA] ERRO NÃO TRATADO GERAL:",
-    err.message,
-    err.stack
-  );
+  console.error("[Vercel] ERRO GERAL NÃO TRATADO:", err.message, err.stack);
   if (!res.headersSent) {
-    res.status(500).send("Erro Interno Geral do Servidor.");
+    res.status(500).send("Erro Interno no Servidor.");
   }
 });
 
