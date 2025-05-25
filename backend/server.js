@@ -1,9 +1,11 @@
 // backend/server.js
-require("dotenv").config(); // Carrega as variáveis de ambiente do arquivo .env
+require("dotenv").config();
 
 const express = require("express");
 const { google } = require("googleapis");
 const cors = require("cors");
+const path = require("path");
+const fs = require("fs"); // <<--- ADICIONE ESTA LINHA (para verificar arquivos)
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -11,156 +13,115 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// --- Configuração para servir o React SPA ---
+const frontendBuildPath = path.join(__dirname, "../frontend/build");
+
+// LOGS PARA DEBUG NA VERCEL
+console.log(`[Vercel Server Log] __dirname: ${__dirname}`);
+console.log(
+  `[Vercel Server Log] Tentando usar frontendBuildPath: ${frontendBuildPath}`
+);
+
+// Verificando se a pasta de build do frontend existe
+fs.access(frontendBuildPath, fs.constants.F_OK, (err) => {
+  if (err) {
+    console.error(
+      `[Vercel Server Log] ERRO: Pasta frontendBuildPath NÃO ENCONTRADA em: ${frontendBuildPath}`
+    );
+    // Tenta listar conteúdo do diretório pai para ajudar no debug
+    try {
+      const parentDir = path.resolve(__dirname, "..");
+      const parentDirContents = fs.readdirSync(parentDir);
+      console.log(
+        `[Vercel Server Log] Conteúdo do diretório pai ('${parentDir}'): ${parentDirContents.join(
+          ", "
+        )}`
+      );
+    } catch (e) {
+      console.error(
+        "[Vercel Server Log] Erro ao listar diretório pai:",
+        e.message
+      );
+    }
+  } else {
+    console.log(
+      `[Vercel Server Log] SUCESSO: Pasta frontendBuildPath ENCONTRADA em: ${frontendBuildPath}`
+    );
+  }
+});
+// FIM DOS LOGS PARA DEBUG
+
+app.use(express.static(frontendBuildPath));
+
 const SPREADSHEET_ID = "13lutgdWIY7ezc-6PihVQcjWaqsdk0Pb-SBIEDpHx9as";
-const API_KEY = process.env.GOOGLE_API_KEY; // Chave de API do Google Cloud (do .env)
+const API_KEY = process.env.GOOGLE_API_KEY;
 
 app.get("/api/estagios", async (req, res) => {
+  // Seu código da API continua aqui...
+  // (Não vou repetir todo o código da API para economizar espaço, mantenha o seu como está)
   if (!API_KEY) {
     console.error(
-      "ERRO FATAL: A variável de ambiente GOOGLE_API_KEY não está definida."
+      "[Vercel Server Log] API_KEY não definida na rota /api/estagios"
     );
-    return res.status(500).json({
-      error:
-        "Erro de configuração no servidor: Chave da API do Google ausente.",
-      message: "Por favor, configure a GOOGLE_API_KEY no ambiente do servidor.",
-    });
+    return res
+      .status(500)
+      .json({ error: "Configuração do servidor incompleta." });
   }
-
+  // ... resto da sua lógica da API ...
+  // apenas um exemplo para garantir que a rota está definida
   try {
-    const sheets = google.sheets({ version: "v4", auth: API_KEY });
-
-    let allEstagios = [];
-
-    const spreadsheetInfoResponse = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
-      fields: "sheets.properties.title",
-    });
-
-    const availableSheetNames = spreadsheetInfoResponse.data.sheets
-      .map((sheet) => sheet.properties.title)
-      .filter(Boolean);
-
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const threeMonthsAgo = new Date(currentYear, currentMonth - 2, 1);
-
-    const relevantSheetNames = availableSheetNames
-      .filter((name) => {
-        const match = name.match(/^(\d{2})\/(\d{4})$/);
-        if (match) {
-          const month = parseInt(match[1], 10);
-          const year = parseInt(match[2], 10);
-          const sheetDate = new Date(year, month - 1, 1);
-          return (
-            sheetDate >= threeMonthsAgo &&
-            sheetDate <= new Date(currentYear, currentMonth + 1, 0) // Até o último dia do mês atual
-          );
-        }
-        return false;
-      })
-      .sort((a, b) => {
-        const [monthA, yearA] = a.split("/").map(Number);
-        const [monthB, yearB] = b.split("/").map(Number);
-        if (yearA !== yearB) return yearB - yearA;
-        return monthB - monthA;
-      });
-
-    if (relevantSheetNames.length === 0) {
-      console.log("Nenhuma aba relevante encontrada para buscar dados.");
-      return res.status(404).json({
-        message: "Nenhum estágio encontrado nas abas relevantes.",
-      });
-    }
-
-    for (const sheetName of relevantSheetNames) {
-      const range = `${sheetName}!A:Z`;
-      const response = await sheets.spreadsheets.get({
-        spreadsheetId: SPREADSHEET_ID,
-        ranges: [range],
-        fields:
-          "sheets.properties,sheets.data.rowData.values.hyperlink,sheets.data.rowData.values.formattedValue",
-      });
-
-      if (
-        !response.data.sheets ||
-        response.data.sheets.length === 0 ||
-        !response.data.sheets[0].data ||
-        response.data.sheets[0].data.length === 0
-      ) {
-        console.log(
-          `Aba "${sheetName}" encontrada, mas sem dados no intervalo "${range}". Pulando.`
-        );
-        continue;
-      }
-
-      const sheetData = response.data.sheets[0].data[0];
-      const rows = sheetData.rowData;
-
-      if (!rows || rows.length === 0) {
-        console.log(`Nenhuma linha de dados encontrada na aba "${sheetName}".`);
-        continue;
-      }
-
-      const headers = rows[0].values
-        ? rows[0].values
-            .map((cell) =>
-              cell.formattedValue ? cell.formattedValue.trim() : ""
-            )
-            .filter(Boolean)
-        : [];
-
-      if (headers.length === 0) {
-        console.log(
-          `Aba "${sheetName}" não tem cabeçalhos na primeira linha. Pulando.`
-        );
-        continue;
-      }
-
-      const estagiosFromSheet = rows
-        .slice(1)
-        .map((row) => {
-          let obj = {};
-          if (row.values) {
-            headers.forEach((header, index) => {
-              const cleanHeader = header
-                .replace(/\s+/g, "_")
-                .replace(/[^a-zA-Z0-9_]/g, "");
-              const cell = row.values[index];
-              if (cell) {
-                obj[cleanHeader] = cell.hyperlink || cell.formattedValue || "";
-              } else {
-                obj[cleanHeader] = "";
-              }
-            });
-          }
-          return obj;
-        })
-        .filter((item) => Object.values(item).some((val) => val));
-
-      allEstagios = allEstagios.concat(estagiosFromSheet);
-    }
-
-    if (allEstagios.length === 0) {
-      return res.status(404).json({
-        message:
-          "Nenhum estágio encontrado em nenhuma das abas relevantes processadas.",
-      });
-    }
-    res.json(allEstagios);
+    // Simulação de busca de dados
+    const exampleData = [{ id: 1, title: "Estágio Exemplo" }];
+    // Lembre-se de colocar sua lógica de busca da planilha aqui
+    res.json(exampleData); // Substitua pela sua lógica real
   } catch (error) {
-    console.error(
-      "Erro ao buscar dados da planilha:",
-      error.message,
-      error.stack
-    );
-    res.status(500).json({
-      error: "Erro interno ao buscar dados da planilha.",
-      details: error.message,
-    });
+    console.error("[Vercel Server Log] Erro na API /api/estagios:", error);
+    res.status(500).json({ error: "Erro ao buscar estágios" });
   }
+});
+
+// Rota "catch-all" para servir o index.html do React
+app.get("*", (req, res) => {
+  const indexPath = path.join(frontendBuildPath, "index.html");
+  console.log(
+    `[Vercel Server Log] Rota '*': Tentando servir index.html de: ${indexPath}`
+  );
+
+  fs.access(indexPath, fs.constants.F_OK, (err) => {
+    if (err) {
+      console.error(
+        `[Vercel Server Log] ERRO: index.html NÃO ENCONTRADO em: ${indexPath}`
+      );
+      // Se o index.html não for encontrado, é provável que o frontendBuildPath esteja incorreto
+      // ou a build do frontend não está acessível.
+      return res
+        .status(404)
+        .send(
+          `Servidor: index.html não encontrado em ${indexPath}. Verifique os logs da função na Vercel.`
+        );
+    }
+    console.log(
+      `[Vercel Server Log] SUCESSO: index.html ENCONTRADO em: ${indexPath}. Enviando arquivo.`
+    );
+    res.sendFile(indexPath, (sendFileError) => {
+      if (sendFileError) {
+        console.error(
+          `[Vercel Server Log] ERRO ao enviar index.html: `,
+          sendFileError
+        );
+        // Evita erro de "headers already sent"
+        if (!res.headersSent) {
+          res
+            .status(500)
+            .send("Servidor: Erro ao enviar o arquivo index.html.");
+        }
+      }
+    });
+  });
 });
 
 app.listen(port, () => {
   console.log(`Servidor de back-end rodando em http://localhost:${port}`);
 });
+
 module.exports = app;
