@@ -1,7 +1,7 @@
 // backend/server.js - VERSÃO MÍNIMA PARA TESTE
-require("dotenv").config(); // Para carregar GOOGLE_API_KEY se necessário para outras partes do build
+require("dotenv").config();
 const express = require("express");
-const cors = require("cors"); // Adicionado para consistência, assumindo que está no seu package.json
+const cors = require("cors");
 
 const app = express();
 
