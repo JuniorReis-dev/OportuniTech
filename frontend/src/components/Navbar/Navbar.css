@@ -1,0 +1,101 @@
+/* src/components/Navbar/Navbar.css */
+.app-navbar {
+  background-color: var(
+    --surface-color-val
+  ); /* Usa a variável de superfície do tema */
+  color: var(--text-color-val); /* Usa a variável de texto do tema */
+  padding: 12px 25px; /* Padding ajustado */
+  border-bottom: 1px solid var(--border-color-val); /* Borda usa a variável do tema */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Sombra sutil */
+  transition: background-color 0.3s ease, border-bottom-color 0.3s ease,
+    color 0.3s ease;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* O body.dark-mode em App.css já deve mudar as variáveis --surface-color-val, etc.,
+   então a navbar deve se adaptar automaticamente ao tema escuro. */
+
+.navbar-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Espaço aumentado entre ícone e texto */
+}
+
+.logo-svg-icon {
+  display: block; /* Ajuda a evitar espaços extras indesejados */
+}
+
+.logo-svg-circle {
+  stroke: var(
+    --primary-accent-val
+  ); /* Cor do círculo do logo usa a cor primária do tema */
+  transition: stroke 0.3s ease;
+}
+
+.logo-svg-line {
+  stroke: var(
+    --secondary-accent-val
+  ); /* Cor das linhas do logo usa a cor secundária do tema */
+  transition: stroke 0.3s ease;
+}
+
+.app-navbar .logo-text {
+  font-size: 1.6em; /* Tamanho do texto da logo ajustado */
+  font-weight: 700; /* Mais peso para o texto */
+  text-decoration: none;
+  color: var(
+    --primary-accent-val
+  ); /* Cor do texto da logo usa a cor primária do tema */
+  transition: color 0.3s ease;
+}
+
+.app-navbar .nav-links {
+  display: flex;
+  gap: 25px;
+}
+
+.app-navbar .nav-link {
+  text-decoration: none;
+  font-size: 1em;
+  font-weight: 500;
+  color: var(--text-color-val);
+  transition: color 0.2s ease-in-out;
+}
+
+.app-navbar .nav-link:hover {
+  color: var(--primary-accent-val);
+}
+
+.dark-mode-toggle button {
+  background-color: transparent;
+  border: 1px solid var(--border-color-val);
+  color: var(--text-color-val);
+  padding: 8px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 1.2em;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.dark-mode-toggle button:hover {
+  background-color: var(--primary-accent-val);
+  color: var(--text-on-primary-val);
+  border-color: var(--primary-accent-val);
+}

@@ -1,0 +1,11 @@
+node_modules/
+.env
+build/
+dist/
+package-lock.json # Geralmente commitado, mas a pasta não
+yarn.lock      # Geralmente commitado, mas a pasta não
+.DS_Store
+.idea/
+.vscode/
+*.log
+tmp/

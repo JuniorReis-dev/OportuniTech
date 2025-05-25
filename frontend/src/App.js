@@ -1,15 +1,14 @@
 // frontend/src/App.js
 import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
-import { gsap } from "gsap"; // Importa o GSAP
+import { gsap } from "gsap";
+import Navbar from "./components/Navbar/Navbar"; // Certifique-se que este caminho está correto
 
 function App() {
-  // Estados para armazenar os dados e o status da aplicação
-  const [estagios, setEstagios] = useState([]); // Lista de estágios
-  const [loading, setLoading] = useState(true); // Indica se os dados estão sendo carregados
-  const [error, setError] = useState(null); // Armazena mensagens de erro
+  const [estagios, setEstagios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Estados para os filtros
   const [filtroDataInclusao, setFiltroDataInclusao] = useState("");
   const [filtroArea, setFiltroArea] = useState("");
   const [filtroEmpresa, setFiltroEmpresa] = useState("");
@@ -18,14 +17,34 @@ function App() {
   const [filtroTipoVaga, setFiltroTipoVaga] = useState("");
   const [filtroPlataforma, setFiltroPlataforma] = useState("");
 
-  // Referências para os elementos DOM para o GSAP
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const localDarkMode = localStorage.getItem("darkMode");
+    return localDarkMode ? JSON.parse(localDarkMode) : false;
+  });
+
   const appRef = useRef(null);
-  const titleRef = useRef(null);
-  const buttonRef = useRef(null);
+  // titleRef foi removido, pois o <h1>Vagas Tech</h1> foi removido.
+  // Se você tiver outro elemento que substitua o título principal e queira animar,
+  // pode reintroduzir um ref para ele.
   const filtersRef = useRef(null);
   const listRef = useRef(null);
 
-  // Função assíncrona para buscar os estágios do back-end
+  const toggleDarkMode = () => {
+    setIsDarkMode((prevMode) => {
+      const newMode = !prevMode;
+      localStorage.setItem("darkMode", JSON.stringify(newMode));
+      return newMode;
+    });
+  };
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add("dark-mode");
+    } else {
+      document.body.classList.remove("dark-mode");
+    }
+  }, [isDarkMode]);
+
   const fetchEstagios = async () => {
     setLoading(true);
     setError(null);
@@ -35,12 +54,10 @@ function App() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-
       const sortedData = data.sort((a, b) => {
         const dateAValue = a.Data_de_Incluso;
         const dateBValue = b.Data_de_Incluso;
         let dateA, dateB;
-
         if (
           dateAValue &&
           typeof dateAValue === "string" &&
@@ -51,7 +68,6 @@ function App() {
         } else {
           dateA = new Date(0);
         }
-
         if (
           dateBValue &&
           typeof dateBValue === "string" &&
@@ -75,7 +91,6 @@ function App() {
     }
   };
 
-  // Lógica de filtragem dos estágios (definida antes do useEffect que a utiliza)
   const estagiosFiltrados = estagios.filter((estagio) => {
     const dataInclusao = estagio.Data_de_Incluso || "";
     const area = estagio.Area || "";
@@ -118,10 +133,7 @@ function App() {
     );
   });
 
-  // Efeito para animações GSAP -- CORRIGIDO
   useEffect(() => {
-    // Só executa animações se não estiver carregando, não houver erro,
-    // e os refs principais estiverem disponíveis.
     if (!loading && !error) {
       if (appRef.current) {
         gsap.fromTo(
@@ -131,12 +143,8 @@ function App() {
         );
       }
 
-      // Combina refs para a animação sequencial e verifica se todos existem
-      const elementsToAnimate = [
-        titleRef.current,
-        buttonRef.current,
-        filtersRef.current,
-      ].filter((el) => el);
+      // Animação apenas para filtersRef agora (titleRef foi removido)
+      const elementsToAnimate = [filtersRef.current].filter((el) => el);
       if (elementsToAnimate.length > 0) {
         gsap.fromTo(
           elementsToAnimate,
@@ -152,7 +160,7 @@ function App() {
         );
       }
 
-      // Verifica listRef, seus filhos, e se há itens filtrados para animar
+      // Animação da lista de cards ajustada
       if (
         listRef.current &&
         listRef.current.children &&
@@ -161,88 +169,49 @@ function App() {
       ) {
         gsap.fromTo(
           listRef.current.children,
-          { opacity: 0, y: 50 },
+          { opacity: 0, y: 20 }, // y reduzido
           {
             opacity: 1,
             y: 0,
-            duration: 0.6,
+            duration: 0.3, // Duração reduzida
             ease: "power2.out",
-            stagger: 0.1,
-            delay: 0.5,
+            stagger: 0.03, // Stagger reduzido
+            delay: 0, // Sem delay inicial
           }
         );
       }
     }
-  }, [estagiosFiltrados, loading, error]); // Adicionado 'error' como dependência e verificações mais robustas
+  }, [loading, error]);
 
-  // Efeito para o Polling (busca inicial e atualização automática)
   useEffect(() => {
-    fetchEstagios(); // Busca inicial
-
-    const intervalTime = 5 * 60 * 1000; // 5 minutos
+    fetchEstagios();
+    const intervalTime = 5 * 60 * 1000;
     const intervalId = setInterval(fetchEstagios, intervalTime);
+    return () => clearInterval(intervalId);
+  }, []);
 
-    return () => clearInterval(intervalId); // Limpeza ao desmontar
-  }, []); // Array vazio para rodar apenas na montagem e desmontagem
-
-  // Mensagens de status para o usuário
   if (loading)
     return (
-      <div
-        style={{
-          textAlign: "center",
-          padding: "40px",
-          fontSize: "1.2em",
-          color: "#555",
-        }}
-      >
-        Carregando vagas...
-      </div>
-    );
-  if (error)
-    return (
-      <div
-        style={{
-          textAlign: "center",
-          color: "#d32f2f",
-          padding: "40px",
-          fontSize: "1.2em",
-        }}
-      >
-        Erro ao carregar: {error}
-      </div>
+      <>
+        <Navbar toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} />
+        <div className="mensagem-carregando">Carregando vagas...</div>
+      </>
     );
 
-  // Lógica para exibir mensagem quando não há vagas após o carregamento ou com filtros
-  // Renderiza o layout principal mesmo que não haja vagas filtradas, para que os filtros fiquem visíveis
   const renderConteudoPrincipal = () => {
+    if (error)
+      return <div className="mensagem-erro">Erro ao carregar: {error}</div>;
     if (estagios.length === 0 && !loading) {
-      // Nenhuma vaga retornada do backend
+      // Checa se estagios está vazio APÓS o loading
       return (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px",
-            fontSize: "1.2em",
-            color: "#555",
-          }}
-        >
-          Nenhuma vaga encontrada no sistema. Verifique a planilha ou a fonte de
-          dados.
+        <div className="mensagem-nenhuma-vaga">
+          Nenhuma vaga encontrada no sistema. Verifique a fonte de dados.
         </div>
       );
     }
     if (estagiosFiltrados.length === 0 && estagios.length > 0 && !loading) {
-      // Vagas existem, mas nenhuma corresponde aos filtros
       return (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px",
-            fontSize: "1.2em",
-            color: "#555",
-          }}
-        >
+        <div className="mensagem-nenhuma-vaga">
           Nenhuma vaga corresponde aos filtros aplicados. Tente outros termos.
         </div>
       );
@@ -289,59 +258,71 @@ function App() {
   };
 
   return (
-    <div className="App" ref={appRef}>
-      <h1 ref={titleRef}>Vagas Tech</h1>
-      <button onClick={fetchEstagios} ref={buttonRef}>
-        Atualizar Vagas Agora
-      </button>
-      <div className="filtros" ref={filtersRef}>
-        <input
-          type="text"
-          placeholder="Data de Inclusão (DD/MM/AAAA)"
-          value={filtroDataInclusao}
-          onChange={(e) => setFiltroDataInclusao(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Área (Ex: Front-end, Dados)"
-          value={filtroArea}
-          onChange={(e) => setFiltroArea(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Empresa"
-          value={filtroEmpresa}
-          onChange={(e) => setFiltroEmpresa(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Cidade (Ex: São Paulo, Remoto)"
-          value={filtroCidade}
-          onChange={(e) => setFiltroCidade(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Título da Vaga"
-          value={filtroTituloVaga}
-          onChange={(e) => setFiltroTituloVaga(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Tipo de Vaga (Ex: Estágio, Trainee)"
-          value={filtroTipoVaga}
-          onChange={(e) => setFiltroTipoVaga(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Plataforma"
-          value={filtroPlataforma}
-          onChange={(e) => setFiltroPlataforma(e.target.value)}
-        />
+    <>
+      <Navbar toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} />
+      <div className="App" ref={appRef}>
+        {/* O h1 foi removido daqui */}
+
+        <div className="filtros" ref={filtersRef}>
+          <input
+            type="text"
+            placeholder="Data de Inclusão (DD/MM/AAAA)"
+            value={filtroDataInclusao}
+            onChange={(e) => setFiltroDataInclusao(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Área (Ex: Front-end, Dados)"
+            value={filtroArea}
+            onChange={(e) => setFiltroArea(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Empresa"
+            value={filtroEmpresa}
+            onChange={(e) => setFiltroEmpresa(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Cidade (Ex: São Paulo, Remoto)"
+            value={filtroCidade}
+            onChange={(e) => setFiltroCidade(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Título da Vaga"
+            value={filtroTituloVaga}
+            onChange={(e) => setFiltroTituloVaga(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Tipo de Vaga (Ex: Estágio, Trainee)"
+            value={filtroTipoVaga}
+            onChange={(e) => setFiltroTipoVaga(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Plataforma"
+            value={filtroPlataforma}
+            onChange={(e) => setFiltroPlataforma(e.target.value)}
+          />
+
+          <button
+            onClick={fetchEstagios}
+            className="primary-action-button"
+            style={{
+              gridColumn: "1 / -1",
+              justifySelf: "center",
+              marginTop: "10px",
+            }}
+          >
+            Atualizar Vagas Agora
+          </button>
+        </div>
+        {renderConteudoPrincipal()}
       </div>
-      {renderConteudoPrincipal()}
-    </div>
+    </>
   );
 }
 
 export default App;
-//arrumei a codigo

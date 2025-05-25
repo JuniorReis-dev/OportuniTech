@@ -1,172 +1,266 @@
 /* frontend/src/App.css */
-/* Importação de Fontes do Google Fonts */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
-/* Reset Básico e Estilos Globais */
+/* -------------------------------------------------------------------------- */
+/* VARIÁVEIS DE COR E TEMAS                            */
+/* -------------------------------------------------------------------------- */
+:root {
+  --font-family-main: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+
+  /* Tema Claro (Padrão) */
+  --bg-color: #f4f7f9; /* Fundo geral da página (um pouco mais suave) */
+  --text-color: #212529; /* Texto principal */
+  --surface-color: #ffffff; /* Fundo de elementos como cards, seções de filtro */
+  --primary-accent: #007bff; /* Cor de destaque principal (azul) */
+  --secondary-accent: #6c757d; /* Cor de destaque secundária (cinza) */
+  --link-color: #0069d9; /* Cor para links (um azul um pouco mais escuro) */
+  --border-color: #dee2e6; /* Cor de bordas */
+  --text-muted: #6c757d; /* Texto com menos destaque */
+  --text-on-primary: #ffffff; /* Texto sobre fundos com --primary-accent */
+  --input-bg-color: #ffffff; /* Fundo dos inputs */
+  --input-focus-border-color: #80bdff;
+  --input-focus-box-shadow: rgba(0, 123, 255, 0.25);
+  --card-shadow: rgba(0, 0, 0, 0.08);
+  --card-hover-shadow: rgba(0, 0, 0, 0.12);
+  --button-shadow: rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode {
+  --bg-color: #1a1d24;
+  --text-color: #e4e6eb;
+  --surface-color: #242831;
+  --primary-accent: #a020f0; /* Roxo/Magenta para modo escuro */
+  --secondary-accent: #40e0d0; /* Ciano/Turquesa para links em cards no modo escuro */
+  --link-color: var(
+    --secondary-accent
+  ); /* Links gerais podem usar o ciano no modo escuro */
+  --border-color: #3a3f4c;
+  --text-muted: #adb5bd;
+  /* --text-on-primary geralmente continua branco/claro */
+  --input-bg-color: #2c3038; /* Fundo dos inputs no modo escuro */
+  --input-focus-border-color: var(--primary-accent);
+  --input-focus-box-shadow: rgba(160, 32, 240, 0.25);
+  --card-shadow: rgba(0, 0, 0, 0.25);
+  --card-hover-shadow: rgba(0, 0, 0, 0.35);
+  --button-shadow: rgba(0, 0, 0, 0.2);
+}
+
+/* -------------------------------------------------------------------------- */
+/* ESTILOS BASE                                */
+/* -------------------------------------------------------------------------- */
 body {
+  font-family: var(--font-family-main);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
   margin: 0;
-  font-family: "Inter", sans-serif; /* Usando a fonte Inter */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f7fa; /* Fundo mais claro, similar ao Pixudio */
-  color: #333;
   line-height: 1.6;
+  font-size: 16px; /* Define um tamanho de fonte base */
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
-}
-
-/* Container Principal da Aplicação */
 .App {
   max-width: 1200px;
-  margin: 40px auto; /* Aumenta o espaçamento superior e inferior */
-  padding: 0 25px; /* Mais padding nas laterais */
+  margin: 0 auto;
+  padding: 20px; /* Reduzido um pouco o padding geral do App */
+  box-sizing: border-box;
 }
 
-/* Título Principal */
+/* Título Principal da Página (Vagas Tech) */
 .App h1 {
+  color: var(--primary-accent); /* Usa a cor primária do tema */
   text-align: center;
-  color: #1a202c; /* Cor de texto mais escura e profissional */
-  font-size: 2.8em; /* Título maior */
-  font-weight: 700; /* Negrito */
-  margin-bottom: 40px; /* Mais espaço abaixo do título */
-  letter-spacing: -0.03em; /* Ajuste para o espaçamento entre letras */
+  margin-top: 0; /* Remove margem do topo se a navbar já der espaço */
+  margin-bottom: 30px;
+  font-size: 2.2em;
 }
 
-/* Botão de Atualizar */
-.App button {
-  padding: 12px 25px; /* Padding maior */
-  cursor: pointer;
-  margin: 25px auto 40px; /* Espaço para cima e para baixo */
-  display: block;
-  background-color: #007bff; /* Azul vibrante, pode ser ajustado */
-  color: white;
-  border: none;
-  border-radius: 8px; /* Cantos mais arredondados */
-  font-size: 1.1em;
-  font-weight: 600;
-  transition: background-color 0.3s ease, transform 0.2s ease; /* Transição suave */
-  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2); /* Sombra sutil */
-}
+/* -------------------------------------------------------------------------- */
+/* NAVBAR                                    */
+/* -------------------------------------------------------------------------- */
+/* Seus estilos de Navbar.css seriam aplicados aqui se você os centralizasse,
+   ou mantenha-os em Navbar.css e importe lá.
+   O CSS que te dei para Navbar já usa variáveis que serão afetadas pelo body.dark-mode */
 
-.App button:hover {
-  background-color: #0056b3; /* Azul mais escuro no hover */
-  transform: translateY(-2px); /* Efeito de "levantar" */
-}
-
-/* Contêiner de Filtros */
+/* -------------------------------------------------------------------------- */
+/* FILTROS                                   */
+/* -------------------------------------------------------------------------- */
 .filtros {
-  margin-bottom: 30px; /* Mais espaço abaixo dos filtros */
-  display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(220px, 1fr)
-  ); /* Colunas flexíveis */
-  gap: 15px; /* Espaçamento entre os campos */
-  background-color: #ffffff; /* Fundo branco para o container de filtros */
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
   padding: 20px;
-  border-radius: 12px; /* Cantos arredondados */
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Sombra mais pronunciada */
-}
+  margin-bottom: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px var(--card-shadow); /* Usando variável de sombra */
 
-/* Estilo para os campos de input dentro dos filtros */
-.filtros input {
-  padding: 12px;
-  border: 1px solid #e2e8f0; /* Borda suave */
-  border-radius: 8px; /* Cantos arredondados */
-  font-size: 1em;
-  color: #4a5568;
-  outline: none; /* Remove a borda de foco padrão */
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.filtros input:focus {
-  border-color: #007bff; /* Borda azul no foco */
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2); /* Sombra de foco */
-}
-
-/* Lista de Estágios (Grid) */
-.lista-estagios {
+  /* Layout em Grid para os inputs e o botão */
   display: grid;
   grid-template-columns: repeat(
     auto-fill,
-    minmax(320px, 1fr)
-  ); /* Cards um pouco maiores */
-  gap: 25px; /* Mais espaço entre os cards */
-  padding: 0; /* Remover padding padrão, se houver */
+    minmax(210px, 1fr)
+  ); /* Ajuste minmax conforme necessário */
+  gap: 15px;
 }
 
-/* Card de Estágio */
+.filtros input[type="text"] {
+  background-color: var(--input-bg-color);
+  color: var(--text-color);
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  font-size: 0.95em;
+  width: 100%; /* Garante que o input preencha a célula do grid */
+  box-sizing: border-box; /* Padding e borda não aumentam a largura */
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.filtros input[type="text"]:focus {
+  border-color: var(--input-focus-border-color);
+  box-shadow: 0 0 0 0.2rem var(--input-focus-box-shadow);
+  outline: none;
+}
+
+.filtros input[type="text"]::placeholder {
+  color: var(--text-muted);
+}
+
+/* Botão "Atualizar Vagas Agora" (dentro dos filtros) */
+/* Lembre-se que no App.js ele tem style={{ gridColumn: '1 / -1', justifySelf: 'center', marginTop: '10px' }} */
+.primary-action-button {
+  padding: 10px 20px; /* Ajuste do padding */
+  font-size: 1em;
+  font-weight: bold;
+  background-color: var(--primary-accent);
+  color: var(--text-on-primary);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease,
+    box-shadow 0.2s ease;
+  box-shadow: 0 2px 3px var(--button-shadow);
+  /* O posicionamento (gridColumn, justifySelf) é feito inline no JSX */
+}
+
+.primary-action-button:hover {
+  filter: brightness(110%); /* Um pouco mais claro no hover */
+  transform: translateY(-1px);
+  box-shadow: 0 3px 5px var(--button-shadow);
+}
+body.dark-mode .primary-action-button:hover {
+  filter: brightness(
+    120%
+  ); /* Pode ser diferente para o modo escuro se necessário */
+}
+
+.primary-action-button:active {
+  transform: translateY(0px);
+  filter: brightness(90%);
+}
+
+/* -------------------------------------------------------------------------- */
+/* LISTA E CARDS DE VAGAS                         */
+/* -------------------------------------------------------------------------- */
+.lista-estagios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
+}
+
 .estagio-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0; /* Borda suave */
-  border-radius: 12px;
-  padding: 25px; /* Mais padding interno */
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); /* Sombra mais profunda */
-  transition: transform 0.3s ease, box-shadow 0.3s ease; /* Transição suave */
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px; /* Reduzido um pouco o padding do card */
+  box-shadow: 0 3px 6px var(--card-shadow);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between; /* Empurra o link para o final */
-  height: 100%; /* Garante que todos os cards na mesma linha tenham a mesma altura */
+  flex-direction: column; /* Essencial para alinhar conteúdo e o link "Ver mais" no final */
+  min-height: 250px; /* Opcional: para manter uma altura mínima, ajuste conforme o conteúdo */
 }
 
 .estagio-card:hover {
-  transform: translateY(-5px); /* Efeito de "levantar" no hover */
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12); /* Sombra mais intensa no hover */
+  transform: translateY(-4px);
+  box-shadow: 0 5px 10px var(--card-hover-shadow);
 }
 
 .estagio-card h2 {
-  font-size: 1.4em; /* Título da vaga um pouco maior */
-  color: #1a202c;
+  font-size: 1.4em; /* Título do card */
+  color: var(--primary-accent);
   margin-top: 0;
-  margin-bottom: 15px;
-  font-weight: 600;
-  line-height: 1.3;
+  margin-bottom: 12px;
 }
 
 .estagio-card p {
+  margin-bottom: 8px;
   font-size: 0.95em;
-  color: #4a5568; /* Texto mais suave */
-  margin-bottom: 8px; /* Espaço entre parágrafos */
+  line-height: 1.5;
+  color: var(--text-color); /* Texto principal do card */
+  flex-grow: 0; /* Evita que parágrafos individuais cresçam demais se não for desejado */
+}
+.estagio-card p:last-of-type {
+  /* Para o último parágrafo antes do link, se houver conteúdo dinâmico */
+  flex-grow: 1; /* Permite que este último parágrafo empurre o link para baixo se necessário */
 }
 
 .estagio-card p strong {
-  color: #2d3748; /* Negrito mais escuro */
+  font-weight: 600;
+  color: var(--text-color); /* Pode ser a mesma cor ou um pouco mais escura */
 }
 
 .estagio-card a {
-  color: #007bff;
-  text-decoration: none; /* Sem sublinhado padrão */
-  font-weight: 500;
-  transition: color 0.2s ease;
-  margin-top: 15px; /* Espaço acima do link */
-  display: inline-block; /* Para padding e margem funcionarem */
+  color: var(--link-color); /* Usando a variável genérica de link */
+  text-decoration: none;
+  font-weight: bold;
+  margin-top: auto; /* Empurra o link para o final do card */
+  padding-top: 10px; /* Espaço acima do link */
+  align-self: flex-start; /* Alinha o link à esquerda */
 }
 
 .estagio-card a:hover {
-  color: #0056b3;
-  text-decoration: underline; /* Sublinhado no hover */
+  text-decoration: underline;
+  filter: brightness(90%);
+}
+body.dark-mode .estagio-card a {
+  color: var(
+    --secondary-accent
+  ); /* Link nos cards em modo escuro usa o ciano */
+}
+body.dark-mode .estagio-card a:hover {
+  filter: brightness(120%);
 }
 
-/* Responsividade Básica */
-@media (max-width: 768px) {
-  .App {
-    margin: 20px auto;
-    padding: 0 15px;
-  }
-
-  .App h1 {
-    font-size: 2em;
-    margin-bottom: 30px;
-  }
-
-  .filtros {
-    grid-template-columns: 1fr; /* Uma coluna em telas menores */
-  }
-
-  .estagio-card {
-    padding: 20px;
-  }
+/* -------------------------------------------------------------------------- */
+/* MENSAGENS DE STATUS                            */
+/* -------------------------------------------------------------------------- */
+.mensagem-carregando,
+.mensagem-nenhuma-vaga {
+  color: var(--text-muted);
+  font-size: 1.1em; /* Reduzido um pouco */
+  text-align: center;
+  padding: 30px;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
 }
+
+.mensagem-erro {
+  color: #721c24; /* Texto do erro para tema claro */
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1em;
+  margin: 20px auto;
+  max-width: 800px;
+}
+
+body.dark-mode .mensagem-erro {
+  color: #f8d7da; /* Texto do erro para tema escuro (mais claro) */
+  background-color: #3e2123; /* Fundo mais escuro para erro */
+  border: 1px solid #721c24;
+}
+
+/* Seus estilos de Navbar (Navbar.css) também devem usar essas variáveis
+   para cores de fundo, texto, bordas, etc., para que o tema seja aplicado lá também. */
