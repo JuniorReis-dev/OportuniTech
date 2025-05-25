@@ -23,9 +23,6 @@ function App() {
   });
 
   const appRef = useRef(null);
-  // titleRef foi removido, pois o <h1>Vagas Tech</h1> foi removido.
-  // Se você tiver outro elemento que substitua o título principal e queira animar,
-  // pode reintroduzir um ref para ele.
   const filtersRef = useRef(null);
   const listRef = useRef(null);
 
@@ -48,8 +45,18 @@ function App() {
   const fetchEstagios = async () => {
     setLoading(true);
     setError(null);
+
+    // --- MODIFICAÇÃO AQUI ---
+    // Use a variável de ambiente para a URL base da API.
+    // Adapte o prefixo (NEXT_PUBLIC_, REACT_APP_, VITE_) conforme seu projeto.
+    const apiBaseUrl =
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001"; // Fallback para localhost se não definida
+    const apiUrl = `${apiBaseUrl}/api/estagios`;
+    // --- FIM DA MODIFICAÇÃO ---
+
     try {
-      const response = await fetch("http://localhost:3001/api/estagios");
+      // const response = await fetch("http://localhost:3001/api/estagios"); // Linha antiga
+      const response = await fetch(apiUrl); // --- MODIFICAÇÃO AQUI ---
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -143,7 +150,6 @@ function App() {
         );
       }
 
-      // Animação apenas para filtersRef agora (titleRef foi removido)
       const elementsToAnimate = [filtersRef.current].filter((el) => el);
       if (elementsToAnimate.length > 0) {
         gsap.fromTo(
@@ -160,7 +166,6 @@ function App() {
         );
       }
 
-      // Animação da lista de cards ajustada
       if (
         listRef.current &&
         listRef.current.children &&
@@ -169,19 +174,23 @@ function App() {
       ) {
         gsap.fromTo(
           listRef.current.children,
-          { opacity: 0, y: 20 }, // y reduzido
+          { opacity: 0, y: 20 },
           {
             opacity: 1,
             y: 0,
-            duration: 0.3, // Duração reduzida
+            duration: 0.3,
             ease: "power2.out",
-            stagger: 0.03, // Stagger reduzido
-            delay: 0, // Sem delay inicial
+            stagger: 0.03,
+            delay: 0,
           }
         );
       }
     }
-  }, [loading, error]);
+    // Removido estagiosFiltrados.length da dependência para evitar reanimações excessivas em cada filtro
+    // A animação principal deve ocorrer quando os dados carregam ou o erro muda.
+    // Se precisar reanimar a lista em cada filtro, pode adicionar estagiosFiltrados de volta,
+    // mas pode ser visualmente ruidoso. Considere animar apenas a entrada/saída de itens.
+  }, [loading, error, estagiosFiltrados.length]); // Adicionado estagiosFiltrados.length para reanimar se a lista mudar
 
   useEffect(() => {
     fetchEstagios();
@@ -202,7 +211,6 @@ function App() {
     if (error)
       return <div className="mensagem-erro">Erro ao carregar: {error}</div>;
     if (estagios.length === 0 && !loading) {
-      // Checa se estagios está vazio APÓS o loading
       return (
         <div className="mensagem-nenhuma-vaga">
           Nenhuma vaga encontrada no sistema. Verifique a fonte de dados.
@@ -261,8 +269,6 @@ function App() {
     <>
       <Navbar toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} />
       <div className="App" ref={appRef}>
-        {/* O h1 foi removido daqui */}
-
         <div className="filtros" ref={filtersRef}>
           <input
             type="text"
