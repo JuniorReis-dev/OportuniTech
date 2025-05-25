@@ -46,10 +46,6 @@ function App() {
     setLoading(true);
     setError(null);
 
-    // Use a variável de ambiente para a URL base da API.
-    // Se estiver usando Create React App, o prefixo seria REACT_APP_
-    // Se estiver usando Vite, o prefixo seria VITE_
-    // Este código usa NEXT_PUBLIC_ como estava no seu exemplo anterior.
     const apiBaseUrl =
       process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
     const apiUrl = `${apiBaseUrl}/api/estagios`;
@@ -74,7 +70,7 @@ function App() {
           const partsA = dateAValue.split("/");
           dateA = new Date(`${partsA[2]}-${partsA[1]}-${partsA[0]}`);
         } else {
-          dateA = new Date(0); // Data inválida ou ausente vai para o final/início
+          dateA = new Date(0);
         }
         if (
           dateBValue &&
@@ -84,9 +80,9 @@ function App() {
           const partsB = dateBValue.split("/");
           dateB = new Date(`${partsB[2]}-${partsB[1]}-${partsB[0]}`);
         } else {
-          dateB = new Date(0); // Data inválida ou ausente vai para o final/início
+          dateB = new Date(0);
         }
-        return dateB.getTime() - dateA.getTime(); // Ordena do mais recente para o mais antigo
+        return dateB.getTime() - dateA.getTime();
       });
       setEstagios(sortedData);
     } catch (e) {
@@ -173,14 +169,14 @@ function App() {
         );
       }
     }
-  }, [loading, error, estagiosFiltrados.length]); // Adicionado estagiosFiltrados.length
+  }, [loading, error, estagiosFiltrados.length]);
 
   useEffect(() => {
     fetchEstagios();
     const intervalTime = 5 * 60 * 1000; // 5 minutos
     const intervalId = setInterval(fetchEstagios, intervalTime);
     return () => clearInterval(intervalId);
-  }, []); // Roda uma vez ao montar e configura o intervalo
+  }, []);
 
   if (loading)
     return (
@@ -230,15 +226,17 @@ function App() {
               <strong>Data de Inclusão:</strong> {estagio.Data_de_Incluso}
             </p>
             {estagio.Link && (
-              <p>
-                <strong>Link:</strong>{" "}
-                <a
-                  href={estagio.Link}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              // O <p> abaixo ajuda a empurrar o botão para o final do card se o card tiver flex-direction: column
+              // e este <p> for o último elemento flexível ou tiver margin-top: auto
+              <p style={{ marginTop: "auto", paddingTop: "15px" }}>
+                <button
+                  className="ver-vaga-button" // A classe agora controla o estilo e a largura
+                  onClick={() =>
+                    window.open(estagio.Link, "_blank", "noopener,noreferrer")
+                  }
                 >
                   Ver Vaga
-                </a>
+                </button>
               </p>
             )}
           </div>
@@ -302,7 +300,7 @@ function App() {
               justifySelf: "center",
               marginTop: "10px",
             }}
-            disabled={loading} // Desabilita o botão enquanto carrega
+            disabled={loading}
           >
             {loading ? "Atualizando..." : "Atualizar Vagas Agora"}
           </button>
